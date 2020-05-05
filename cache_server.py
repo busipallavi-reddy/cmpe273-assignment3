@@ -39,6 +39,12 @@ class UDPServer():
             return self.db.get(key)
         elif operation == 'PUT':
             return self.db.put(key, value)
+        elif operation == 'DELETE':
+            if key in self.db:
+                del self.db[key]
+                return 'success'
+            else:
+                return 'Key does not exist'
         else:
             print(f'Error: Invalid operation={operation}')
             return 'Not supported operation={}'.format(operation)

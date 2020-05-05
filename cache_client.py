@@ -3,7 +3,7 @@ import socket
 
 from sample_data import USERS
 from server_config import NODES
-from pickle_hash import serialize_GET, serialize_PUT
+from pickle_hash import serialize_GET, serialize_PUT, serialize_DELETE
 from node_ring import NodeRing
 
 BUFFER_SIZE = 1024
@@ -42,6 +42,13 @@ def process(udp_clients):
     for hc in hash_codes:
         print(hc)
         data_bytes, key = serialize_GET(hc)
+        response = client_ring.get_node(key).send(data_bytes)
+        print(response)
+
+    # DELETE all users.
+    for hc in hash_codes:
+        print(hc)
+        data_bytes, key = serialize_DELETE(hc)
         response = client_ring.get_node(key).send(data_bytes)
         print(response)
 
