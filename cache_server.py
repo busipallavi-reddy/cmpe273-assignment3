@@ -1,8 +1,9 @@
 import sys
 import socket
+import json
 
 from server_config import NODES
-from pickle_hash import deserialize, hash_code_hex, serialize
+from pickle_hash import deserialize, hash_code_hex
 
 BUFFER_SIZE = 1024
 
@@ -35,14 +36,7 @@ class UDPServer():
 
     def handle_operation(self, operation, key, value):
         if operation == 'GET':
-            # TODO: PART I - implement GET retrieval from self.db.xxxxx
-            key = key.decode("utf-8")
-            if key in self.db:
-                # return 'FIX_ME'.encode()
-                return serialize(self.db.get(key))
-            print(f'Error: Key not found={key}')
-            return 'Key not found={}'.format(key)
-            # return 'FIX_ME'.encode()
+            return self.db.get(key)
         elif operation == 'PUT':
             return self.db.put(key, value)
         else:
@@ -61,6 +55,8 @@ class UDPServer():
             # reply back to the client
             if isinstance(response, str):
                 response = response.encode()
+            elif isinstance(response, dict):
+                response = json.dumps(response).encode()
 
             s.sendto(response, ip)
 

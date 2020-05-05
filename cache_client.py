@@ -4,7 +4,6 @@ import socket
 from sample_data import USERS
 from server_config import NODES
 from pickle_hash import serialize_GET, serialize_PUT
-
 from node_ring import NodeRing
 
 BUFFER_SIZE = 1024
@@ -27,36 +26,23 @@ class UDPClient():
 
 
 def process(udp_clients):
-    nr = NodeRing(NODES)
+    client_ring = NodeRing(udp_clients)
     hash_codes = set()
     # PUT all users.
     for u in USERS:
         data_bytes, key = serialize_PUT(u)
-        # TODO: PART II - Instead of going to server 0, use Naive hashing to split data into multiple servers
-        fix_me_server_id = nr.get_node(key)
-        svr_id = 0
-        for i in range(len(NODES)):
-            if NODES[i] == fix_me_server_id:
-                svr_id = i
-                break
-        response = udp_clients[svr_id].send(data_bytes)
-        hash_codes.add(response)
+        response = client_ring.get_node(key).send(data_bytes)
         print(response)
+        hash_codes.add(str(response.decode()))
+
 
     print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(hash_codes)}")
     
-    # TODO: PART I
     # GET all users.
     for hc in hash_codes:
         print(hc)
         data_bytes, key = serialize_GET(hc)
-        fix_me_server_id = nr.get_node(key)
-        svr_id = 0
-        for i in range(len(NODES)):
-            if NODES[i] == fix_me_server_id:
-                svr_id = i
-                break
-        response = udp_clients[svr_id].send(data_bytes)
+        response = client_ring.get_node(key).send(data_bytes)
         print(response)
 
 
