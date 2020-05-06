@@ -3,6 +3,7 @@ import json
 import sys
 import socket
 
+from bloomfilter import BloomFilter
 from sample_data import USERS
 from server_config import NODES
 from pickle_hash import serialize_GET, serialize_PUT, serialize_DELETE, deserialize, serialize
@@ -11,6 +12,7 @@ from lru_cache import LRUCache
 
 BUFFER_SIZE = 1024
 cache = LRUCache(3)
+bloomfilter = BloomFilter(20, 3)
 
 def lru_cache(size):
     def lru_cache_decorator(func):
@@ -74,15 +76,26 @@ class UDPClient():
 
 @lru_cache(3)
 def put(data_bytes, node):
-    return str(node.send(data_bytes).decode())
+    response = str(node.send(data_bytes).decode())
+    bloomfilter.add(deserialize(data_bytes)["id"])
+    print("BLOOMFILTER: member added")
+    return response
 
 @lru_cache(3)
 def get(data_bytes, node):
-    return node.send(data_bytes)
+    if bloomfilter.is_member(deserialize(data_bytes)["id"]):
+        print("BLOOMFILTER: is member")
+        return node.send(data_bytes)
+    print("BLOOMFILTER: is not a member")
+    return 'Key does not exist'
 
 @lru_cache(3)
 def delete(data_bytes, node):
-    return node.send(data_bytes)
+    if bloomfilter.is_member(deserialize(data_bytes)["id"]):
+        print("BLOOMFILTER: is member")
+        return node.send(data_bytes)
+    print("BLOOMFILTER: is not a member")
+    return 'Key does not exist'
 
 def process(udp_clients):
     client_ring = NodeRing(udp_clients)
