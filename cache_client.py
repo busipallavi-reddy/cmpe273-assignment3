@@ -3,7 +3,7 @@ import json
 import sys
 import socket
 
-from bloomfilter import BloomFilter
+from bloom_filter import BloomFilter
 from sample_data import USERS
 from server_config import NODES
 from pickle_hash import serialize_GET, serialize_PUT, serialize_DELETE, deserialize, serialize
@@ -12,7 +12,7 @@ from lru_cache import LRUCache
 
 BUFFER_SIZE = 1024
 cache = LRUCache(3)
-bloomfilter = BloomFilter(20, 3)
+bloomfilter = BloomFilter(5, 0.05)
 
 def lru_cache(size):
     def lru_cache_decorator(func):
