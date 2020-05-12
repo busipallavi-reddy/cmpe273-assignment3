@@ -1,4 +1,3 @@
-import functools
 import json
 import sys
 import socket
@@ -8,55 +7,12 @@ from sample_data import USERS
 from server_config import NODES
 from pickle_hash import serialize_GET, serialize_PUT, serialize_DELETE, deserialize, serialize
 from node_ring import NodeRing
-from lru_cache import LRUCache
+from lru_cache import lru_cache
 
 BUFFER_SIZE = 1024
-cache = LRUCache(3)
-bloomfilter = BloomFilter(5, 0.05)
 
-def lru_cache(size):
-    def lru_cache_decorator(func):
-        operation = func.__name__
+bloomfilter = BloomFilter(len(USERS), 0.05)
 
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            print("BEFORE ", func.__name__, size)
-
-            data = deserialize(args[0])
-
-            if operation == 'put':
-                key = data['id']
-                value = data['payload']
-                if cache.get(key) == value:
-                    print("PUT: CACHE HIT")
-                    response = key
-                else:
-                    print("PUT: CACHE MISS, HITTING SERVER")
-                    response = func(*args, **kwargs)
-                cache.put(key, json.dumps(value).encode())
-                print("CACHE CONTENTS", cache.map, "LEN ", len(cache.map))
-
-            elif operation == 'get':
-                key = data['id']
-                value = cache.get(key)
-                if value:
-                    print("GET: CACHE HIT")
-                    response = value
-                else:
-                    print("GET: CACHE MISS, HITTING SERVER")
-                    response = func(*args, **kwargs)
-                    print("GET RESPONSE ", response)
-                    cache.put(key, response)
-
-            elif operation == 'delete':
-                key = data['id']
-                response = func(*args, **kwargs)
-                cache.delete(key)
-
-            print("AFTER", func.__name__, size)
-            return response
-        return wrapper
-    return lru_cache_decorator
 
 class UDPClient():
     def __init__(self, host, port):
@@ -74,7 +30,7 @@ class UDPClient():
             print("Error! {}".format(socket.error))
             exit()
 
-@lru_cache(3)
+# @lru_cache(3)
 def put(data_bytes, node):
     response = str(node.send(data_bytes).decode())
     bloomfilter.add(deserialize(data_bytes)["id"])
@@ -82,14 +38,14 @@ def put(data_bytes, node):
     return response
 
 @lru_cache(3)
-def get(data_bytes, node):
+def get(key, data_bytes, node):
     if bloomfilter.is_member(deserialize(data_bytes)["id"]):
         print("BLOOMFILTER: is member")
         return node.send(data_bytes)
     print("BLOOMFILTER: is not a member")
     return 'Key does not exist'
 
-@lru_cache(3)
+# @lru_cache(3)
 def delete(data_bytes, node):
     if bloomfilter.is_member(deserialize(data_bytes)["id"]):
         print("BLOOMFILTER: is member")
@@ -109,15 +65,14 @@ def process(udp_clients):
         hash_codes.add(response)
 
 
-    # print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(hash_codes)}")
-    print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(cache.map)}")
+    print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(hash_codes)}")
     
     # GET all users.
     for hc in hash_codes:
         print(hc)
         data_bytes, key = serialize_GET(hc)
         # response = client_ring.get_node(key).send(data_bytes)
-        response = get(data_bytes, client_ring.get_node(key))
+        response = get(key, data_bytes, client_ring.get_node(key))
         print(response)
 
     # DELETE all users.

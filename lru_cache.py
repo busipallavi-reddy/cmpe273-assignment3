@@ -1,3 +1,7 @@
+import functools
+import time
+
+
 class Node:
     def __init__(self, key, val):
         self.key = key
@@ -66,3 +70,35 @@ class LRUCache():
         prev.next = next
         next.prev = prev
         del node
+
+def lru_cache(size):
+    def lru_cache_decorator(func):
+        cache = LRUCache(size)
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            operation = func.__name__
+            # print("BEFORE ", func.__name__, size)
+            args_list = []
+            if args:
+                args_list.append(', '.join(repr(arg) for arg in args))
+            args_str = ', '.join(args_list)
+            key = args[0]
+            value = cache.get(key)
+            if value:
+                print('[cache-hit] %s(%s) -> %r ' % (operation, args_str, value))
+                # print("GET: CACHE HIT")
+                response = value
+            else:
+                start_time = time.time()
+                # print("GET: CACHE MISS, HITTING SERVER")
+                response = func(*args, **kwargs)
+                end_time = time.time() - start_time
+                print('[%0.8fs] %s(%s) -> %r ' % (end_time, operation, args_str, response))
+                # print("GET RESPONSE ", response)
+                cache.put(key, response)
+
+            # print("AFTER", func.__name__, size)
+            return response
+        return wrapper
+    return lru_cache_decorator
