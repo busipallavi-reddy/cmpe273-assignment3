@@ -173,3 +173,35 @@ Connecting to server at 127.0.0.1:4000
 b'Not supported operation=DELETE'
 ```
 
+
+
+What are the best *k* hashes and *m* bits values to store one million *n* keys (E.g. e52f43cd2c23bb2e6296153748382764) suppose we use the same MD5 hash key from [pickle_hash.py](https://github.com/sithu/cmpe273-spring20/blob/master/midterm/pickle_hash.py#L14) and explain why?
+
+*Formulae*
+
+```
+m = - (n * log(p)) / (log(2)^2) 
+k = (m/n) ln 2
+
+Reference for formulae derivation - https://en.wikipedia.org/wiki/Bloom_filter
+```
+
+Using this formula:
+
+```
+n = 1000000, p = 0.05
+m = 6235224 bits ( ~ 780 KB)
+n = 4
+
+n = 1000000, p = 0.1
+m = 4792529 bits ( ~ 600 KB)
+n = 3
+```
+
+As we use bit array which makes Bloom filter array space efficient, size of bit array for p = 0.05 is 780 KB and for p = 0.1 is 500 KB. 
+
+The choice of hash counts is a trade off. More the number of hash functions, more number of bits needed to be set in bloom filter. This increases the false positive rate. Also, more the number of hash functions, it less probable that it will result in false positive as we need all the bits of the hash functions to be set. 
+
+Bigger the size of m, better will be false positive rate. But this also increases memory requirements, making addition of keys and checking for membership less efficient.
+
+A good hash function should have less correlation between the bits of the hash. Usually for larger m, independence between hash functions can be relaxed with higher false positive rate.
